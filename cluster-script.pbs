@@ -1,0 +1,112 @@
+#!/bin/bash
+
+###### PBS options for a serial job #############################################
+
+### Select the queue where to submit the job to,
+### e.g. short_eth, med_eth, long_eth, short_quad, med_quad, long_quad
+### Default: short_eth
+#PBS -q long_eth
+
+### Expected run time of the job.
+### The job will be terminated if this time is exceeded.
+### This is a serial job, so the number of nodes is set to 1.
+### Default: 1 core on 1 node for 10 minutes
+###PBS -l walltime=${walltime},nodes=${num_nodes}
+
+### Define the name of the job.
+### Default: name of the PBS script.
+###PBS -N ${project_name}
+
+### Specify whether and on what event you want to use e-mail notification:
+### [b]egin, [a]bort, [e]nd
+### Default: no notification
+#PBS -m ae
+
+### e-mail address for job notification messages.
+### If no full name is given (e.g. just the username), a .forward file must be
+### configured in the user's home directory, otherwise the mail will be discarded.
+### Default: username
+### Attention: Be sure to specify an existing e-mail address
+### ---------  instead of the template's address below !!!
+###PBS -M ${project_mail}
+
+### File to redirect standard output of the job to.
+### Make sure to use a unique file name.
+### If you do not care about standard output, use "PBS -o /dev/null"
+### Default: Name of jobfile plus ".o" plus number of PBS job
+###PBS -o ${base_dir}/${results_directory}/${project_name}.o$PBS_JOBID
+
+### This option redirects stdout and stderr into the same output file
+### (see PBS option -o).
+#PBS -j oe
+
+###### End of PBS options #######################################################
+
+
+### The following command, if uncommented by deleting the hash sign in front of 'cat',
+### saves the name of the compute node (to which the job is submitted by the batch system).
+### This information may be useful when debugging.
+### This information can also be retrieved while the job is being executed via "qstat -f jobid".
+###
+### Be sure to use a unique file name (!), though, to avoid concurrent write access
+### which may happen when multiple jobs of yours are started simultaneously.
+#cat $PBS_NODEFILE > $HOME/pbs-machine.$PBS_JOBID
+
+# check the input parameters
+echo "Run with parameters:"
+
+echo " - base dir = "${base_dir}
+if [ ! "${base_dir}" ]; then
+    echo "Please specify the project directory"
+    exit 1
+fi
+
+echo " - results dir = "${results_directory}
+if [ ! "${results_directory}" ]; then
+    echo "Please specify the results directory"
+    exit 1
+fi
+
+#echo " - project name = "${project_name}
+#if [ ! "${project_name}" ]; then
+#    echo "Please specify project name"
+#    exit 1
+#fi
+#
+#echo " - project mail = "${project_mail}
+#if [ ! "${project_mail}" ]; then
+#    echo "Please specify the project mail address"
+#    exit 1
+#fi
+#
+#echo " - walltime = "${walltime}
+#if [ ! "${walltime}" ]; then
+#    echo "Please specify a walltime"
+#    exit 1
+#fi
+#
+#echo " - num nodes = "${num_nodes}
+#if [ ! "${num_nodes}" ]; then
+#    echo "Please specify the number of nodes"
+#    exit 1
+#fi
+
+echo " - pre commands = "${pre_commands}
+
+echo " - command = "${command}
+if [ ! "${command}" ]; then
+    echo "Please specify a command to execute"
+    exit 1
+fi
+
+### Run pre commands
+if [ "${pre_commands}" ]; then
+    echo "Running pre commands"
+    eval "${pre_commands}"
+fi
+
+### Generate short pbs jobid
+SHORT_PBS_JOBID=`echo $PBS_JOBID | sed -e 's/^\([0-9][0-9]*\).*$/\1/g'`
+
+### Start the application
+eval "${command}"
